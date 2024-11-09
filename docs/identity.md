@@ -104,5 +104,3 @@ let signature = identity.sign(fields);
 let verified = Identity.verify(fields, signature, identity.pk);
 console.log(`Verified message '${message}': `, verified);
 ~~~
-
-

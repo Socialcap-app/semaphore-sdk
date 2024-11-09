@@ -18,7 +18,7 @@ There is one entry in the KV pool per Group, where **key** = `${guid}`
 
 **Methods**
 
-[Group.create(guid: string, type?: string,  pool?: 'mem' | 'lmdb'): Group](src/group.ts)
+### [Group.create(guid: string, type?: string,  pool?: 'mem' | 'lmdb'): Group](src/group.ts)
 
 Creates a new empty instance of Group of the given type, where:
 
@@ -36,7 +36,7 @@ let guid = `communities.${UID.uuid4()}.electors`;
 let group = Group.create(guid, 'medium', 'lmdb');
 ~~~
 
-[Group.read(guid: string, pool?: 'mem' | 'lmdb'): Group](src/group.ts)
+### [Group.read(guid: string, pool?: 'mem' | 'lmdb'): Group](src/group.ts)
 
 Reads an existent group from the  given pool, where:
 
@@ -54,7 +54,7 @@ let guid = `communities.8e141386c85b4f29b12bbd5edd0c0ae9.electors`;
 let group = Group.read(guid, 'lmdb');
 ~~~
 
-[.save()](src/group.ts)
+### [.save()](src/group.ts)
 
 Saves the instance to the associated pool.
 
@@ -67,7 +67,7 @@ let group = Group.create(guid, {type: 'medium', pool: 'lmdb'});
 group.save();
 ~~~
 
-[.addMember(commitment: string)](src/group.ts)
+### [.addMember(commitment: string)](src/group.ts)
 
 Adds a new identity commitment to the group.  If it exists it assigns _value = Field(1)_ to the given  identity commitment leaf.
 
@@ -81,7 +81,21 @@ let group = Group.read(guid, 'lmdb');
 group.addMember(identity.commitment);
 ~~~
 
-[.isMember(commitment: string): boolean](src/group.ts)
+### [.removeMember(commitment: string)](src/group.ts)
+
+Removes a member from the group, by assigning _value = Field(0)_ to the given  identity commitment leaf.
+
+~~~typescript
+import { UID, Group, Identity } from '@socialcap/semaphore-sdk';
+let identity = Identity.create('some-idn', '010101');
+let guid = `communities.8e141386c85b4f29b12bbd5edd0c0ae9.electors`;
+let group = Group.read(guid, 'lmdb');
+
+// remove this identity from the group
+group.removeMember(identity.commitment);
+~~~
+
+### [.isMember(commitment: string): boolean](src/group.ts)
 
 Check if it is a member of the group.
 
@@ -95,16 +109,3 @@ let group = Group.read(guid, 'lmdb');
 let exists = group.isMember(identity.commitment);
 ~~~
 
-[.removeMember(commitment: string)](src/group.ts)
-
-Removes a member from the group, by assigning _value = Field(0)_ to the given  identity commitment leaf.
-
-~~~typescript
-import { UID, Group, Identity } from '@socialcap/semaphore-sdk';
-let identity = Identity.create('some-idn', '010101');
-let guid = `communities.8e141386c85b4f29b12bbd5edd0c0ae9.electors`;
-let group = Group.read(guid, 'lmdb');
-
-// remove this identity from the group
-group.removeMember(identity.commitment);
-~~~
