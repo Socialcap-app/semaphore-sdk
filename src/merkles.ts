@@ -6,10 +6,7 @@ import { bigintFromBase64, bigintToBase64 } from "./utils.js";
 const { IndexedMerkleMap } = Experimental;
 
 export {
-  createMerkleMap,
-  serializeMap,
-  deserializeMap,
-  getSortedKeys,
+  SomeMerkleMap,
   AnyMerkleMap,
   SmallMerkleMap,
   MediumMerkleMap,
@@ -21,6 +18,35 @@ class MediumMerkleMap extends IndexedMerkleMap(16) {} // max 65536 nodes
 class BigMerkleMap extends IndexedMerkleMap(24) {} // max 16777216 nodes
 
 type AnyMerkleMap = BigMerkleMap | MediumMerkleMap | SmallMerkleMap ;
+
+class SomeMerkleMap {
+  map: AnyMerkleMap | null = null;
+  type: string;
+
+  constructor(type: string) {
+    this.type = type || 'small';
+    this.map = null;
+  }
+
+  public empty(): SomeMerkleMap {
+    this.map = createMerkleMap(this.type)
+    return this;
+  }
+
+  public serialize(): string {
+    let json = serializeMap(this.map as AnyMerkleMap);
+    return json;
+  }
+
+  public deserialize(json: string): SomeMerkleMap {
+    this.map = deserializeMap(json, this.type);
+    return this;
+  }
+
+  public getSortedKeys(): string[] {
+    return getSortedKeys(this.map as AnyMerkleMap);
+  }
+}
 
 /**
  * Factory: creates a new Merkle of the given size.

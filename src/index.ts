@@ -6,3 +6,4 @@ export { CipheredText } from "./encryption.js";
 export { UID } from "./uid.js";
 export { LMDB } from "./config.js";
 export { logger } from "./logger.js";
+export { AnyMerkleMap, SomeMerkleMap } from "./merkles.js";
