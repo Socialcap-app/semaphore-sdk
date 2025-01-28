@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Field, PublicKey, verify, VerificationKey, Proof } from "o1js";
+import { Field, PublicKey, verify, VerificationKey, ZkProgram, SelfProof, JsonProof, Signature } from "o1js";
 import { Identity } from "../src/identity";
-import { IdentityProver, IdentityProof } from "../src/prover";
+import { IdentityProver, IdentityProof, compileIdentityProver, verifyIdentity, proveIdentityOwnership } from "../src/prover";
 
 describe('Create identity and prove it', () => {
   let name = "testidn";
@@ -14,8 +14,7 @@ describe('Create identity and prove it', () => {
   let ownershipProof: IdentityProof;
 
   beforeAll(async () => {
-    let compiled = await IdentityProver.compile();
-    verificationKey = compiled.verificationKey;
+    verificationKey = await compileIdentityProver();
   });
 
   it('Create proofOfOwnership', async () => {
@@ -64,4 +63,62 @@ describe('Create identity and prove it', () => {
     console.log('verifyIdentity ok? ', okOwned); 
     expect(okOwned).toBe(true);
   });
+
+  it('JSON serialize/deserialize roundtrip', async () => {
+    // serialize the proof
+    let jsonProof = ownershipProof.proof.toJSON();
+    let stringifiedJsonProof = JSON.stringify(jsonProof);
+    console.log("stringifiedJsonProof", `"${stringifiedJsonProof}"`);
+
+    // serialize the signature
+    let stringifiedSignature = JSON.stringify(
+      (idn.sign([ Field(idn.commitment) ])).toJSON()
+    );
+
+    // deserialize the stringified proof
+    // we need to use a subclass 'ZkProgram.Proof(IdentityProver)'
+    let recoveredProof = await ZkProgram.Proof(IdentityProver).fromJSON(
+      JSON.parse(stringifiedJsonProof)
+    );
+
+    // verify its ok
+    let ok = await verify(recoveredProof.toJSON(), verificationKey);
+    expect(ok).toBe(true);
+  });
+
+  it('Verify identity using helper function', async () => {
+    // serialize proof and signature
+    let proofString = JSON.stringify(
+      ownershipProof.proof.toJSON()
+    );
+    let signedString = JSON.stringify(
+      idn.sign([Field(idn.commitment)]).toJSON()
+    );
+
+    // the helper function is much easier to use !
+    const isVerified = await verifyIdentity(
+      idn.commitment,
+      proofString,
+      idn.pk,
+      signedString
+    );
+    expect(isVerified).toBe(true);
+  });  
+
+  it('Verify identity with invalid proof', async () => {
+    // create other users identity and proof
+    let other = Identity.create("other-one", "010203") as Identity;
+    let proofStr = await proveIdentityOwnership(other, "010203");
+    let signedStr = JSON.stringify(other.sign([Field(other.commitment)]).toJSON());
+
+    // now verify 'other', but use a bad commitment
+    const isVerified = await verifyIdentity(
+      idn.commitment, // this is wrong ! 
+      proofStr!,
+      idn.pk,
+      signedStr
+    );
+    expect(isVerified).toBe(false);
+  });  
 });  
+

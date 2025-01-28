@@ -1,17 +1,27 @@
 import { Field, Signature, Poseidon, PublicKey, VerificationKey } from "o1js";
-import { ZkProgram, SelfProof, Proof } from "o1js";
+import { ZkProgram, SelfProof, Proof, verify } from "o1js";
+import { readPrivateFile, savePrivateFile } from "./private.js";
+import { Identity } from "./identity.js"
 
 export {
   IdentityProver,
-  IdentityProof
+  IdentityProof,
+  compileIdentityProver,
+  restoreVerificationKey,
+  proveIdentityOwnership,
+  verifyIdentity
 }
 
+type IdentityProofPublicInput = Field;
+type IdentityProofPublicOutput = Field;
 type IdentityProof = { 
-  proof: Proof<Field, Field>; 
+  proof: Proof<IdentityProofPublicInput, IdentityProofPublicOutput>; 
   auxiliaryOutput: undefined; 
 };
 
-let verificationKeyCache: VerificationKey | null = null;
+//  locals
+let identityProverVK: VerificationKey | null = null;
+const VK_FILE = 'identity-prover-vk';
 
 /**
 * The IdentityProver is used to prove ownership of a given identity
@@ -63,6 +73,7 @@ const IdentityProver = ZkProgram({
     */
     verifyIdentity: {
       privateInputs: [SelfProof, PublicKey, Signature],
+
       async method(
         state: Field,  // the identity commitment 
         ownershipProof: SelfProof<Field, Field>,
@@ -72,6 +83,9 @@ const IdentityProver = ZkProgram({
         // verify the received proof
         ownershipProof.verify();
 
+        // verify the proof and the commitment come from the same identity
+        state.assertEquals(ownershipProof.publicInput);
+
         // verify the signed identity commitment, if it passes 
         // it means it has been signed with this identity secretKey
         signature.verify(publicKey, [state]);
@@ -79,44 +93,152 @@ const IdentityProver = ZkProgram({
           publicOutput: state
         };
       },
-    }
+    },
   }
 });
 
+// HELPERS /////////////////////////////////////////////////////////////////////
 
 /**
- * Builds the proof that he/she owns this identity
- * @param identity 
- * @param signature
- * @returns the proof as a JSON object (not stringified)
+ * Compiles the IdentityProver and saving VerificationKey for futures uses. 
+ * It does not use the Cache (yet).
+*/
+async function compileIdentityProver(): Promise<VerificationKey> {
+  if (!identityProverVK) {
+    const { verificationKey } = await IdentityProver.compile();
+    identityProverVK = verificationKey;
+  }
+
+  // save for future use
+  savePrivateFile(VK_FILE, {
+    data: identityProverVK.data.toString(),
+    hash: identityProverVK.hash.toString()
+  })
+
+  return identityProverVK;
+}
+
+/**
+ * Restores the verification key from a private file.
  */
-// async function proveIdentityOwnership(
-//   identity: Identity,
-//   pin: string,
-//   signature: Signature
-// ): Promise<any> {
-//   if (!verificationKeyCache) {
-//     const { verificationKey } = await IdentityProver.compile();
-//     verificationKeyCache = verificationKey;
-//   }
-// 
-//   // create a proof that the commited identity belongs to us
-//   const ownershipProof = await IdentityProver.proveOwnership(
-//     Field(identity.commitment), 
-//     PublicKey.fromBase58(identity.pk),
-//     Field(pin),
-//     signature
-//   );
-//   console.log('ownershipProof: ', 
-//     JSON.stringify(ownershipProof.publicInput, null, 2),
-//     JSON.stringify(ownershipProof.publicOutput, null, 2)
-//   );
-//   ownershipProof.verify();
-// 
-//   // test the proof: this will be also be done on the /services side by
-//   // the retrieveAssignments handler
-//   const okOwned = await verify(ownershipProof.toJSON(), verificationKeyCache);
-//   console.log('ownershipProof ok? ', okOwned);  
-// 
-//   return ownershipProof.toJSON();
-// }
+function restoreVerificationKey(): VerificationKey | null {
+  const vk = readPrivateFile(VK_FILE);
+  if (!vk) return null;
+  return {
+    data: vk.data,
+    hash: Field(vk.hash)
+  }
+}
+
+/**
+ * Verifies the identity but does not create a proof of the verification.
+ * If a proof of verification is needed use IdentityProver.verifyIdentity() 
+ * which also generates a proof.
+ * @param commitment - the identity commitment 
+ * @param serializedProof - the serialized ownershipProof
+ * @param publicKey - base58 publicKey
+ * @param serializedSignature - the serialized signed comittment
+ * @returns 
+ */
+async function verifyIdentity(
+  commitment: string,  
+  serializedProof: string, 
+  publicKey: string, 
+  serializedSignature: string 
+): Promise<boolean> {
+  if (
+    !commitment || 
+    !serializedProof || 
+    !publicKey || 
+    !serializedSignature
+  ) {
+    console.log(`verifyIdentity error: Invalid params`)
+    return false;
+  }   
+
+  // First get the VerificationKey OR compile. NOTE that we do not need 
+  // to compile if we already have the VerificationKey.
+  let verificationKey = restoreVerificationKey();
+  if (!verificationKey) 
+    verificationKey = await compileIdentityProver();
+
+  // deserialize the received proof
+  let ownershipProof = await ZkProgram.Proof(IdentityProver).fromJSON(
+    JSON.parse(serializedProof)
+  );
+
+  // deserialize the received signature
+  let signed = Signature.fromJSON(JSON.parse(serializedSignature));
+
+  // verify the proof and the commitment come from the same identity
+  try { 
+    ownershipProof.publicInput.assertEquals(Field(commitment)); 
+  }
+  catch (error) {
+    console.log(`verifyIdentity error: Invalid identity ${commitment} or ownershipProof`) 
+    return false; 
+  }
+
+  // check ownership
+  const isOwner = await verify(ownershipProof, verificationKey);
+  if (!isOwner) {
+    console.log(`verifyIdentity error: Failed verification of ${commitment} ownershipProof`) 
+    return false;
+  }  
+
+  // check signature
+  const isSigned = signed.verify(
+    PublicKey.fromBase58(publicKey), 
+    [Field(commitment)]
+  );
+  if (!isSigned.toBoolean()) {
+    console.log(`verifyIdentity error: Failed verification of ${commitment} signature`) 
+    return false;
+  }  
+
+  return true;
+}
+
+/**
+ * Builds the proof that he/she owns this identity.
+ * @param identity - the identity object 
+ * @param pin - the user PIN
+ * @returns the proof as a serialized JSON object
+ */
+async function proveIdentityOwnership(
+  identity: Identity,
+  pin: string
+): Promise<string | null> {
+  if (!identity || !pin) {
+    console.log(`proveIdentityOwnership error: Invalid params`)
+    return null;
+  }   
+
+  try {
+    // we NEED it to be compiled
+    let verificationKey = await compileIdentityProver();
+    
+    // create a proof that the commited identity belongs to us
+    const ownershipProof = await IdentityProver.proveOwnership(
+      Field(identity.commitment), 
+      PublicKey.fromBase58(identity.pk),
+      Field(pin),
+      identity.sign([Field(identity.commitment)])
+    );
+    console.log('ownershipProof: ', 
+      JSON.stringify(ownershipProof.proof.publicInput, null, 2),
+      JSON.stringify(ownershipProof.proof.publicOutput, null, 2)
+    );
+  
+    // test the proof: this will be also be done on the /services side by
+    // the retrieveAssignments handler
+    const ok = await verify(ownershipProof.proof.toJSON(), verificationKey);
+    console.log('ownershipProof ok? ', ok);  
+  
+    return JSON.stringify(ownershipProof.proof.toJSON());
+  }
+  catch (error) {
+    console.log(`proveIdentityOwnership error: `, error);
+    return null;
+  }
+}
