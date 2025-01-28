@@ -187,7 +187,7 @@ const ownershipProofStr = '{"publicInput":["2779...4174"], ... ,"proof":"KChzd..
 const signedStr = '{"r":"1424...6435","s":"1081..4734"}';
 const pk = 'B62qkdXmLZWpkQgaRirz9bQ6rkLKeTWW28X9jXGmfGm73K6LkVetLov';
 
-// now we can prove that it was verified 
+// now we can verify it
 // we do not need to deserialize anything
 const isVerified = await verifyIdentity(
   commitment,
