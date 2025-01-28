@@ -10,7 +10,7 @@
 */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Field } from "o1js";
-import { AnyMerkleMap, SomeMerkleMap } from "./merkles.js";
+import { SizedMerkleMap, AnyMerkleMap } from "./merkles.js";
 import { type KVSPool, type KVSPoolType, openPool } from "./kvs-pool.js";
 import { cleanLabel } from "./private.js";
 
@@ -21,7 +21,7 @@ export {
 class Group {
   guid = '';
   type = '';
-  merkle: SomeMerkleMap | null;
+  merkle: AnyMerkleMap | null;
   kvs: KVSPool | null;
 
   constructor(guid: string) {
@@ -47,7 +47,7 @@ class Group {
   ): Group {
     let group = new Group(guid);
     group.type = type || 'small'; // default is SmallMerkleMap
-    let some = new SomeMerkleMap(group.type);
+    let some = new AnyMerkleMap(group.type);
     group.merkle = some.empty();
     group.kvs = openPool(pool || 'mem'); // default is Mem pool
     return group;
@@ -63,7 +63,7 @@ class Group {
     let group = new Group(guid);
     group.kvs = openPool(pool || 'mem');
     let map = group.kvs.get(group.guid); 
-    let some = new SomeMerkleMap(group.type);    
+    let some = new AnyMerkleMap(group.type);    
     if (map) {
       group.merkle = some.deserialize(map.json);
       group.type = map.type;
@@ -77,7 +77,7 @@ class Group {
   public save() {
     if (!this.kvs)
       throw Error(`No KV storage exists for Group: ${this.guid}`);
-    let some = (this.merkle as SomeMerkleMap);    
+    let some = (this.merkle as AnyMerkleMap);    
     let serialized = some.serialize();
     (this.kvs as KVSPool).put(this.guid, {
       guid: this.guid,
@@ -97,8 +97,8 @@ class Group {
   public isMember(commitment: string): boolean {
     if (!this.merkle) 
       throw Error(`No MerkleMap exists for Group: ${this.guid}`);
-    let some = (this.merkle as SomeMerkleMap);    
-    let opt = (some.map as AnyMerkleMap).getOption(Field(commitment));
+    let some = (this.merkle as AnyMerkleMap);    
+    let opt = (some.map as SizedMerkleMap).getOption(Field(commitment));
     return (
       opt.isSome.toBoolean() && 
       opt.value.equals(Field(1)).toBoolean()
@@ -112,8 +112,8 @@ class Group {
   public addMember(commitment: string) {
     if (!this.merkle) 
       throw Error(`No MerkleMap exists for Group: ${this.guid}`);
-    let some = (this.merkle as SomeMerkleMap);    
-    (some.map as AnyMerkleMap).set(
+    let some = (this.merkle as AnyMerkleMap);    
+    (some.map as SizedMerkleMap).set(
       Field(commitment),
       Field(1) //flag it as existent
     );
@@ -126,8 +126,8 @@ class Group {
   public removeMember(commitment: string) {
     if (!this.merkle) 
       throw Error(`No MerkleMap exists for Group: ${this.guid}`);
-    let some = (this.merkle as SomeMerkleMap);    
-    (some.map as AnyMerkleMap).set(
+    let some = (this.merkle as AnyMerkleMap);    
+    (some.map as SizedMerkleMap).set(
       Field(commitment),
       Field(0) // we do not remove, we flag it as 0
     );

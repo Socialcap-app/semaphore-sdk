@@ -6,8 +6,8 @@ import { bigintFromBase64, bigintToBase64 } from "./utils.js";
 const { IndexedMerkleMap } = Experimental;
 
 export {
-  SomeMerkleMap,
   AnyMerkleMap,
+  SizedMerkleMap,
   SmallMerkleMap,
   MediumMerkleMap,
   BigMerkleMap
@@ -17,10 +17,10 @@ class SmallMerkleMap extends IndexedMerkleMap(12) {} // max 4096 nodes
 class MediumMerkleMap extends IndexedMerkleMap(16) {} // max 65536 nodes
 class BigMerkleMap extends IndexedMerkleMap(24) {} // max 16777216 nodes
 
-type AnyMerkleMap = BigMerkleMap | MediumMerkleMap | SmallMerkleMap ;
+type SizedMerkleMap = BigMerkleMap | MediumMerkleMap | SmallMerkleMap ;
 
-class SomeMerkleMap {
-  map: AnyMerkleMap | null = null;
+class AnyMerkleMap {
+  map: SizedMerkleMap | null = null;
   type: string;
 
   constructor(type: string) {
@@ -28,40 +28,40 @@ class SomeMerkleMap {
     this.map = null;
   }
 
-  public empty(): SomeMerkleMap {
+  public empty(): AnyMerkleMap {
     this.map = createMerkleMap(this.type)
     return this;
   }
 
   public serialize(): string {
-    let json = serializeMap(this.map as AnyMerkleMap);
+    let json = serializeMap(this.map as SizedMerkleMap);
     return json;
   }
 
-  public deserialize(json: string): SomeMerkleMap {
+  public deserialize(json: string): AnyMerkleMap {
     this.map = deserializeMap(json, this.type);
     return this;
   }
 
   public getSortedKeys(): string[] {
-    return getSortedKeys(this.map as AnyMerkleMap);
+    return getSortedKeys(this.map as SizedMerkleMap);
   }
 }
 
 /**
  * Factory: creates a new Merkle of the given size.
  * @param size "small | medium | big"
- * @returns AnyMerkleMap
+ * @returns SizedMerkleMap
  */
-function createMerkleMap(options?: string): AnyMerkleMap {
+function createMerkleMap(options?: string): SizedMerkleMap {
   if (options?.includes('small')) 
-    return new SmallMerkleMap() as AnyMerkleMap;
+    return new SmallMerkleMap() as SizedMerkleMap;
   if (options?.includes('medium')) 
-    return new MediumMerkleMap() as AnyMerkleMap;
+    return new MediumMerkleMap() as SizedMerkleMap;
   if (options?.includes('big')) 
-    return new BigMerkleMap() as AnyMerkleMap;
+    return new BigMerkleMap() as SizedMerkleMap;
   // default
-  return new SmallMerkleMap() as AnyMerkleMap; 
+  return new SmallMerkleMap() as SizedMerkleMap; 
 }  
 
 /**
@@ -71,7 +71,7 @@ function createMerkleMap(options?: string): AnyMerkleMap {
  * @param map the MerkleMap to serialize
  * @returns the serialized JSON string
  */
-function serializeMap(map: AnyMerkleMap): string {
+function serializeMap(map: SizedMerkleMap): string {
   const snapshot = map.clone();
   //console.log("root map1:", map.root.toJSON());
   //console.log("root map2:", snapshot.root.toJSON());
@@ -106,7 +106,7 @@ function serializeMap(map: AnyMerkleMap): string {
  * https://github.com/zkcloudworker/zkcloudworker-tests/blob/main/tests/indexed.map.test.ts
  * @param serialized 
  */
-function deserializeMap(serialized: string, type?: string): AnyMerkleMap {
+function deserializeMap(serialized: string, type?: string): SizedMerkleMap {
   const json = JSON.parse(serialized);
   const nodes = JSON.parse(json.nodes, (_, v) => {
     // Check if the value is a string that represents a BigInt
@@ -144,7 +144,7 @@ function deserializeMap(serialized: string, type?: string): AnyMerkleMap {
  * @param map 
  * @returns the array of sorted keys in the map
  */
-function getSortedKeys(map: AnyMerkleMap): string[] {
+function getSortedKeys(map: SizedMerkleMap): string[] {
   // traverse the sorted nodes
   const sortedLeaves = map.data.get().sortedLeaves; 
   const sortedKeys = sortedLeaves?.map((t) => {

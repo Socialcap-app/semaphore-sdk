@@ -57,8 +57,14 @@ class Identity {
    * @param label a name or label for this identity, assigned by user
    * @param pin a six digits pin number, assigned by the user
   */ 
-  static create(label: string, pin: string): Identity {
-    return new Identity(label, pin.padStart(6, '0'));
+  static create(label: string, pin: string): Identity | null {
+    try {
+      return new Identity(label, pin.padStart(6, '0'));
+    }
+    catch (error: unknown) {
+      console.log(`Create identity error=`, error)
+      return null;
+    }
   }
 
   /**

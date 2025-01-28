@@ -22,20 +22,19 @@ let env: any = {};
 try {
   isBrowser = (window !== undefined && window.document !== undefined);
   isNode = !isBrowser;
-  console.log("initSdk: running in Browser");
+  console.log("Running in Browser");
 }
 catch (error) {
   isBrowser = false;
   isNode = !isBrowser;
-  console.log("initSdk: running in Node");
+  console.log("Running in Node");
 }
 
 export function initSdk(options: object) {
   env = Object.assign(env, options);       
-  //console.log('initSdk: set NATS=',NATS);
 
   LMDB  = {
     PATH: env.LMDB_PATH
   }
-  console.log('initSdk: set LMDB=', LMDB);
+  console.log('initSdk LMDB=', LMDB);
 }

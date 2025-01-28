@@ -36,7 +36,7 @@ Semaphore: Zero-Knowledge Signaling on Ethereum**
 
 - [config](./src/config.ts)
 - [UID](./src/uid.ts)
-- [SomeMerkleMap](./src/merkles.ts)
+- [AnyMerkleMap](./src/merkles.ts)
 - [CipheredText](./src/encryption.ts)
 - [Lmdb Pool](./src/kvs-lmdb-pool.ts)
 - [Mem Pool](./src/kvs-mem-pool.ts)
