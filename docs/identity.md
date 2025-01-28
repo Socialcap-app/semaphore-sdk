@@ -13,16 +13,29 @@ Relevant attributes of an Identity instance are:
 
 The `commitment` is obtained using `Poseidon.hash([pk, pin])` .
 
-### [static Identity.create(label: string, pin: string): Identity](../src/identity.ts#L60)
+## Methods
+
+### [Identity.create](../src/identity.ts#L60)
 
 Creates a new Identity instance, with new random public and private keys, where:
 
-- `label`: a unique name for this identity which will be used to store the 
+**Definition** 
+<pre style="font-style: italic">
+static Identity.create(
+  label: string, 
+  pin: string
+): Identity | null
+</pre>   
+
+**Params**
+- `label` a unique name for this identity which will be used to store the 
   identity under this name (in a private file or local storage).
-- `pin`: a secret six digits number given by the user, used to build the commitment.
+- `pin` a secret six digits number given by the user, used to build the commitment.
 
-Example:
+**Returns**
+- An initialized identity instance, or null on failure
 
+**Example**
 ~~~typescript
 import { Identity }	from '@socialcap/semaphore-sdk';
 
@@ -31,14 +44,24 @@ let identity = Identity.create('mario-01', '0102003');
 console.log(`Commitment: ${identity.commitment}`)
 ~~~
 
-### [static Identity.read(label: string): Identity](../src/identity.ts#L83)
+### [Identity.read](../src/identity.ts#L83)
 
 Reads a private JSON identity file from the '~/.private' folder or the LocalStorage, where
 
-- `name`: the identity label use to create the private file or LocalStorage entry.
+**Definition** 
+<pre style="font-style: italic">
+static Identity.read(
+  label: string
+): Identity | null
+</pre>   
 
-Example:
+**Params**
+- `label` the identity label use to create the private file or LocalStorage entry.
 
+**Returns**
+- The stored identity instance, or null on failure
+
+**Example**
 ~~~typescript
 import { Identity }	from '@socialcap/semaphore-sdk';
 
@@ -47,14 +70,18 @@ let identity = Identity.read('mario-01');
 console.log(`Commitment: ${identity.commitment} `)
 ~~~
 
-### [save()](../src/identity.ts#L88)
+### [save](../src/identity.ts#L88)
 
 Saves this identity instance as a JSON string to the private area. In the 
 browser the private area is the LocalStorage. In Node the private area is 
 the '.private' folder.
 
-Example:
+**Definition**
+<pre style="font-style: italic">
+save(): void
+</pre>   
 
+**Example**
 ~~~typescript
 import { Identity }	from '@socialcap/semaphore-sdk';
 let identity = Identity.create('mario-01', '0102003');
@@ -67,6 +94,20 @@ identity.save();
 
 Signs an array of Fields using the identity secret key.
 
+**Definition**
+<pre style="font-style: italic">
+sign(
+  fields: Field[]
+): Signature
+</pre>   
+
+**Params**
+- `fields` is the array of fields to sign using the identity private key
+
+**Returns**
+- The signed array, or null on failure
+
+**Example**
 ~~~typescript
 import { Signature, Field } from 'o1js';
 import { Identity }	from '@socialcap/semaphore-sdk';

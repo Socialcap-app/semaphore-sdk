@@ -89,12 +89,18 @@ class Identity {
     savePrivateFile(this.label, this);
   }
 
-  public sign(fields: Field[]): Signature {
-    let signature = Signature.create(
-      PrivateKey.fromBase58(this.sk), 
-      fields
-    );
-    return signature;
+  public sign(fields: Field[]): Signature | null {
+    try {
+      let signature = Signature.create(
+        PrivateKey.fromBase58(this.sk), 
+        fields
+      );
+      return signature;
+    }
+    catch (error) {
+      console.log(`Identity sign error=`, error)
+      return null;
+    }
   }
 }
 
