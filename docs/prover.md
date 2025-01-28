@@ -21,7 +21,7 @@ Where:
 
 ## Methods
 
-### [IdentityProver.proveOwnership](../src/prover.ts#L34])
+### [IdentityProver.proveOwnership](../src/prover.ts#L44])
 
 Proves that the user "owns" this identity. To do this he needs to provide his 
 `publicKey`, his `pin` and `sign` his identity commitment using his identity 
@@ -74,7 +74,7 @@ const ownershipProof = await IdentityProver.proveOwnership(
 const ok = await verify(ownershipProof.proof.toJSON(), verificationKey);
 ~~~
 
-### [IdentityProver.verifyIdentity](../src/prover.ts#L67)
+### [IdentityProver.verifyIdentity](../src/prover.ts#L74)
 
 Allows a third party to verify that a user "owns" this identity. The user only 
 needs to provide to the verifier his ownershipProof, his public key, and his 
@@ -144,7 +144,7 @@ const ok = await verify(verifiedProof.proof.toJSON(), verificationKey);
 
 These are helper function that simplify usage of the IdentityProver.
 
-### [verifyIdentity](../src/prover.ts#L67)
+### [verifyIdentity](../src/prover.ts#L143)
 
 Verifies the given user identity (the user has provided a valid ownership proof, 
 and he has correctly signed it), but does not create a proof of the 

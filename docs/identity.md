@@ -90,7 +90,7 @@ let identity = Identity.create('mario-01', '0102003');
 identity.save();
 ~~~
 
-### [sign(fields: Field[]): Signature](../src/identity.ts#L92)
+### [sign](../src/identity.ts#L92)
 
 Signs an array of Fields using the identity secret key.
 
@@ -111,6 +111,7 @@ sign(
 ~~~typescript
 import { Signature, Field } from 'o1js';
 import { Identity }	from '@socialcap/semaphore-sdk';
+
 let identity = Identity.create('mario-01', '0102003');
 
 // convert the string message to an array of Fields

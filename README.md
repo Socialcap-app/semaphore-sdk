@@ -30,13 +30,13 @@ Semaphore: Zero-Knowledge Signaling on Ethereum**
 
 ### Proofs
 
-- [IdentityProver](./docs/proofs.md)
+- [Provers](./docs/prover.md)
 
 ### Helpers
 
-- [config](./src/config.ts)
-- [UID](./src/uid.ts)
-- [AnyMerkleMap](./src/merkles.ts)
-- [CipheredText](./src/encryption.ts)
-- [Lmdb Pool](./src/kvs-lmdb-pool.ts)
-- [Mem Pool](./src/kvs-mem-pool.ts)
+- [config](../src/config.ts)
+- [UID](../src/uid.ts)
+- [AnyMerkleMap](../src/merkles.ts)
+- [CipheredText](../src/encryption.ts)
+- [Lmdb Pool](../src/kvs-lmdb-pool.ts)
+- [Mem Pool](../src/kvs-mem-pool.ts)
