@@ -15,7 +15,7 @@ The `commitment` is obtained using `Poseidon.hash([pk, pin])` .
 
 ### Methods
 
-#### [Identity.create(label: string, pin: string): Identity](../src/identity.ts)
+#### [Identity.create(label: string, pin: string): Identity](../src/identity.ts#L60)
 
 Creates a new Identity instance, with new random public and private keys, where:
 
@@ -33,7 +33,7 @@ let identity = Identity.create('mario-01', '0102003');
 console.log(`Commitment: ${identity.commitment}`)
 ~~~
 
-#### [Identity.read(label: string): Identity](../src/identity.ts)
+#### [Identity.read(label: string): Identity](../src/identity.ts#L83)
 
 Reads a private JSON identity file from the '~/.private' folder or the LocalStorage, where
 
@@ -49,7 +49,7 @@ let identity = Identity.read('mario-01');
 console.log(`Commitment: ${identity.commitment} `)
 ~~~
 
-#### [instance.save()](../src/identity.ts)
+#### [instance.save()](../src/identity.ts#L88)
 
 Saves this identity instance as a JSON string to the private area. In the 
 browser the private area is the LocalStorage. In Node the private area is 
@@ -65,7 +65,7 @@ let identity = Identity.create('mario-01', '0102003');
 identity.save();
 ~~~
 
-"### [instance.sign(fields: Field[]): Signature](../src/identity.ts)
+"### [instance.sign(fields: Field[]): Signature](../src/identity.ts#L92)
 
 Signs an array of Fields using the identity secret key.
 
