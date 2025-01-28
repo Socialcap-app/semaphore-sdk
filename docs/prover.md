@@ -31,14 +31,14 @@ The resultant proof can then be send to third parties and will be used by them
 to verify ownership of the identity.
 
 **Definition**
-<pre style="font-style: italic">
+~~~
 async IdentityProver.proveOwnership(
   state: Field, 
   publicKey: PublicKey, 
   pin: Field, 
   signature: Signature
 ): IdentityProof
-</pre>
+~~~
 
 **Public input**
 - `state`: the identity commitment, as a Field
@@ -85,14 +85,14 @@ you can use the helper function 'verifyIdentity()' that does not generate a
 proof and will be much faster.
 
 **Definition**
-<pre style="font-style: italic">
+~~~
 async IdentityProver.verifyIdentity(
-    state: Field, 
-    ownershipProof: SelfProof<Field, Field>, 
-    publicKey: PublicKey, 
-    signature: Signature
-  ): IdentityProof
-</pre>   
+  state: Field, 
+  ownershipProof: SelfProof<Field, Field>, 
+  publicKey: PublicKey, 
+  signature: Signature
+): IdentityProof
+~~~   
 
 **Public input**
 - `state`: the user identity commitment, as a Field
@@ -157,14 +157,14 @@ If proof of verification is needed use `IdentityProver.verifyIdentity()` which
 also generates a proof.
 
 **Definition** 
-<pre style="font-style: italic">
+~~~
 async function verifyIdentity(
   commitment: string,  
   serializedProof: string, 
   publicKey: string, 
   serializedSignature: string 
 ): Promise<boolean>
-</pre>   
+~~~   
 
 **Params**
 - `commitment` the identity commitment 

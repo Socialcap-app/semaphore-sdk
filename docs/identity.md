@@ -20,12 +20,12 @@ The `commitment` is obtained using `Poseidon.hash([pk, pin])` .
 Creates a new Identity instance, with new random public and private keys, where:
 
 **Definition** 
-<pre style="font-style: italic">
+~~~
 static Identity.create(
   label: string, 
   pin: string
 ): Identity | null
-</pre>   
+~~~
 
 **Params**
 - `label` a unique name for this identity which will be used to store the 
@@ -49,11 +49,11 @@ console.log(`Commitment: ${identity.commitment}`)
 Reads a private JSON identity file from the '~/.private' folder or the LocalStorage, where
 
 **Definition** 
-<pre style="font-style: italic">
+~~~
 static Identity.read(
   label: string
 ): Identity | null
-</pre>   
+~~~
 
 **Params**
 - `label` the identity label use to create the private file or LocalStorage entry.
@@ -77,9 +77,9 @@ browser the private area is the LocalStorage. In Node the private area is
 the '.private' folder.
 
 **Definition**
-<pre style="font-style: italic">
+~~~
 save(): void
-</pre>   
+~~~
 
 **Example**
 ~~~typescript
@@ -95,11 +95,11 @@ identity.save();
 Signs an array of Fields using the identity secret key.
 
 **Definition**
-<pre style="font-style: italic">
+~~~
 sign(
   fields: Field[]
 ): Signature
-</pre>   
+~~~
 
 **Params**
 - `fields` is the array of fields to sign using the identity private key
