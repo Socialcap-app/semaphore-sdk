@@ -1,11 +1,15 @@
-import { Field, Signature, Poseidon, PublicKey, PrivateKey, VerificationKey } from "o1js";
-import { ZkProgram, SelfProof, verify } from "o1js";
-import { Identity } from "./identity";
+import { Field, Signature, Poseidon, PublicKey, VerificationKey } from "o1js";
+import { ZkProgram, SelfProof, Proof } from "o1js";
 
 export {
   IdentityProver,
-  proveIdentityOwnership
+  IdentityProof
 }
+
+type IdentityProof = { 
+  proof: Proof<Field, Field>; 
+  auxiliaryOutput: undefined; 
+};
 
 let verificationKeyCache: VerificationKey | null = null;
 
@@ -29,6 +33,7 @@ const IdentityProver = ZkProgram({
     */
     proveOwnership: {
       privateInputs: [PublicKey, Field, Signature],
+
       async method(
         state: Field, // the identity commitment
         publicKey: PublicKey,
@@ -45,14 +50,16 @@ const IdentityProver = ZkProgram({
         // verify the signed identity commitment, if it passes 
         // it means it has been signed with this identity secretKey
         signature.verify(publicKey, [state]);
-        return state;
+        return {
+          publicOutput: state
+        };
       },
     },
 
     /** 
      * Allows a third party to verify that a user "owns" this identity.
-     * The user only needs to provide the ownershipProof, so there is no
-     * private data exposed here.
+     * The user only needs to provide the ownershipProof, and a signature
+     * so there is no private data exposed here.
     */
     verifyIdentity: {
       privateInputs: [SelfProof, PublicKey, Signature],
@@ -68,7 +75,9 @@ const IdentityProver = ZkProgram({
         // verify the signed identity commitment, if it passes 
         // it means it has been signed with this identity secretKey
         signature.verify(publicKey, [state]);
-        return state;
+        return {
+          publicOutput: state
+        };
       },
     }
   }
@@ -81,33 +90,33 @@ const IdentityProver = ZkProgram({
  * @param signature
  * @returns the proof as a JSON object (not stringified)
  */
-async function proveIdentityOwnership(
-  identity: Identity,
-  pin: string,
-  signature: Signature
-): Promise<any> {
-  if (!verificationKeyCache) {
-    const { verificationKey } = await IdentityProver.compile();
-    verificationKeyCache = verificationKey;
-  }
-
-  // create a proof that the commited identity belongs to us
-  const ownershipProof = await IdentityProver.proveOwnership(
-    Field(identity.commitment), 
-    PublicKey.fromBase58(identity.pk),
-    Field(pin),
-    signature
-  );
-  console.log('ownershipProof: ', 
-    JSON.stringify(ownershipProof.publicInput, null, 2),
-    JSON.stringify(ownershipProof.publicOutput, null, 2)
-  );
-  ownershipProof.verify();
-
-  // test the proof: this will be also be done on the /services side by
-  // the retrieveAssignments handler
-  const okOwned = await verify(ownershipProof.toJSON(), verificationKeyCache);
-  console.log('ownershipProof ok? ', okOwned);  
-
-  return ownershipProof.toJSON();
-}
+// async function proveIdentityOwnership(
+//   identity: Identity,
+//   pin: string,
+//   signature: Signature
+// ): Promise<any> {
+//   if (!verificationKeyCache) {
+//     const { verificationKey } = await IdentityProver.compile();
+//     verificationKeyCache = verificationKey;
+//   }
+// 
+//   // create a proof that the commited identity belongs to us
+//   const ownershipProof = await IdentityProver.proveOwnership(
+//     Field(identity.commitment), 
+//     PublicKey.fromBase58(identity.pk),
+//     Field(pin),
+//     signature
+//   );
+//   console.log('ownershipProof: ', 
+//     JSON.stringify(ownershipProof.publicInput, null, 2),
+//     JSON.stringify(ownershipProof.publicOutput, null, 2)
+//   );
+//   ownershipProof.verify();
+// 
+//   // test the proof: this will be also be done on the /services side by
+//   // the retrieveAssignments handler
+//   const okOwned = await verify(ownershipProof.toJSON(), verificationKeyCache);
+//   console.log('ownershipProof ok? ', okOwned);  
+// 
+//   return ownershipProof.toJSON();
+// }
