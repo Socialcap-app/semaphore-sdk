@@ -223,7 +223,7 @@ async function proveIdentityOwnership(
       Field(identity.commitment), 
       PublicKey.fromBase58(identity.pk),
       Field(pin),
-      identity.sign([Field(identity.commitment)])
+      identity.sign([Field(identity.commitment)])!
     );
     console.log('ownershipProof: ', 
       JSON.stringify(ownershipProof.proof.publicInput, null, 2),
