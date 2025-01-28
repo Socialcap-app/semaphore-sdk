@@ -11,3 +11,8 @@ coverage
 
 # Never commit keys to Git!
 keys
+
+# Cache files
+.cache
+
+
