@@ -19,7 +19,7 @@ describe('Create identity and prove it', () => {
   });
 
   it('Create proofOfOwnership', async () => {
-    let signed =   idn.sign([ Field(idn.commitment) ]);
+    let signed = idn.sign([ Field(idn.commitment) ]);
     console.log(signed);
 
     ownershipProof = await IdentityProver.proveOwnership(
@@ -33,6 +33,7 @@ describe('Create identity and prove it', () => {
       JSON.stringify(ownershipProof.proof.publicInput, null, 2),
       JSON.stringify(ownershipProof.proof.publicOutput, null, 2)
     );
+    expect(ownershipProof.proof.publicInput).toStrictEqual(ownershipProof.proof.publicOutput);
 
     // test the proof: this will be also be done on the /services side by
     // the retrieveAssignments handler
