@@ -65,7 +65,7 @@ let identity = Identity.create('mario-01', '0102003');
 identity.save();
 ~~~
 
-"### [instance.sign(fields: Field[]): Signature](../src/identity.ts#L92)
+### [instance.sign(fields: Field[]): Signature](../src/identity.ts#L92)
 
 Signs an array of Fields using the identity secret key.
 
