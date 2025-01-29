@@ -6,7 +6,9 @@
 export {
   isBrowser,
   isNode,
-  LMDB 
+  env,
+  LMDB,
+  POOL 
 }
 
 let isBrowser = false;
@@ -16,6 +18,10 @@ let isNode = false;
 let LMDB = {
   PATH: ''
 };
+
+let POOL = {
+  TYPE: 'mem' // default 'mem' | 'lmdb' 
+}
 
 let env: any = {};
 
@@ -37,4 +43,9 @@ export function initSdk(options: object) {
     PATH: env.LMDB_PATH
   }
   console.log('initSdk LMDB=', LMDB);
+
+  POOL = {
+    TYPE: env.POOL_TYPE || POOL.TYPE
+  }
+  console.log('initSdk POOL=', POOL);
 }
