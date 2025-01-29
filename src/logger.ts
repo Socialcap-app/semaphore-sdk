@@ -86,7 +86,7 @@ class LoggerInstance {
   timer(message: string, obj?: any) {
     this._lastTs = Date.now();
     this._elapsed = 0.0; // secs
-    logIt(this, LogLevel.DEBUG, `(${this._elapsed.toFixed(3)}s) ${message}`, obj, true);
+    logIt(this, this._level, `(${this._elapsed.toFixed(3)}s) ${message}`, obj, true);
     return this;
   }
 
@@ -95,7 +95,7 @@ class LoggerInstance {
     if (!this._lastTs) this._lastTs = Date.now();
     const ts = Date.now();
     this._elapsed = (ts - this._lastTs)/1000.0; // secs
-    logIt(this, LogLevel.DEBUG, `(${this._elapsed.toFixed(3)}s) ${message}`, obj, true);
+    logIt(this, this._level, `(${this._elapsed.toFixed(3)}s) ${message}`, obj, true);
     return this;
   }
 }
