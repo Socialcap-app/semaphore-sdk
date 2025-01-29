@@ -30,7 +30,7 @@ function openPool(type: KVSPoolType): MemKVS | LmdbKVS {
  * In the browser, only memory groups can be managed.
 */
 class MemKVS {
-  private static _POOL: Map<string, any>;
+  private static _POOL = new Map<string, any>();
 
   public get(key: string): any | null {
     const data = MemKVS._POOL.get(key) || null;
@@ -40,10 +40,15 @@ class MemKVS {
   public put(key: string, data: any) {
     MemKVS._POOL.set(key, data);
   }
+
+  public has(key: string) {
+    return MemKVS._POOL.has(key);
+  }
 }
 
 /**
  * A LMDB KeyValue store for saving Semaphore Groups.
+ * See: https://github.com/kriszyp/lmdb-js
  * NOTE: only works on Node, not in browser.
 */
 class LmdbKVS {
@@ -62,10 +67,14 @@ class LmdbKVS {
     });
   }
 
+  public has(key: string) {
+    const db = LmdbKVS.openDb();
+    return db.doesExist(key);
+  }
+
   private static openDb(options?: { log: any }) {
     if (LmdbKVS._DB) return LmdbKVS._DB;
-    let logging = options?.log || logger;
-    logging.info(`Open KVStore path='${LMDB.PATH}'`);
+    logger.info(`Open KVStore path='${LMDB.PATH}'`);
     try {
       const db = open({
         path: LMDB.PATH,
@@ -78,7 +87,7 @@ class LmdbKVS {
       LmdbKVS._DB = db;
     }
     catch (err) {
-      logging.error(err);
+      logger.error(`ERROR opening KVStore path:'${LMDB.PATH}'`, err);
       LmdbKVS._DB = null;
       throw Error(`ERROR opening KVStore path:'${LMDB.PATH}' reason:'${err}'`);
     }
