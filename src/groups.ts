@@ -9,7 +9,7 @@
  * But in fact can use any name convention, for example '{}.items'.
 */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Field } from "o1js";
+import { Field, Signature, PublicKey } from "o1js";
 import { SizedMerkleMap, AnyMerkleMap } from "./merkles.js";
 import { type KVSPool, type KVSPoolType, openPool } from "./kvs-pool.js";
 import { cleanLabel } from "./private.js";
@@ -17,28 +17,35 @@ import { POOL } from "./config.js";
 import { logger } from "./logger.js";
 
 export { 
-  Group 
+  Group,
+  OwnedGroup 
 };
 
 type PersistentGroup = {
   guid: string,
+  owner: string | null, 
   type: string,
   size: string,
   root: string,
   json: string,
-  updatedUTC: string
+  updatedUTC: string,
 };
 
+/**
+ * The base Group class for all groups.
+ * The owner is optional, and may be used by child classes.
+ */
 class Group {
-  guid = '';
-  type = '';
-  merkle: AnyMerkleMap | null;
+  guid = ''; // the unique Uid of the group
+  type = ''; // 'small' | 'medium' | 'big'
+  merkle: AnyMerkleMap | null; // the IndexedMerkleMap
+  owner: string | null; // the base58 public key of the owner
 
   // this is the pool where we will store the groups
   // we MUST defined the POOL type with initSdk
   kvs: KVSPool;
 
-  constructor(guid: string) {
+  constructor(guid: string, owner?: string) {
     if (!guid) throw Error(
       "Missing params: the Group requires a guid"
     );
@@ -46,20 +53,28 @@ class Group {
     this.type = '';
     this.merkle = null;
     this.kvs = openPool(POOL.TYPE as KVSPoolType);
+    this.owner = owner || null;
   }
 
   /**
    * Creates a new empty Group
    * @param guid - the unique name of this group 
-   * @param type? - the merkle map size: small | medium | big
+   * @param type - the merkle map size: small | medium | big
+   * @param owner? - optional owner public key (base58) of this group
    * @returns 
    */
   public static create(
     guid: string, 
-    type?: string
+    type: string,
+    owner?: string,
   ): Group | null {
     try {
-      let group = new Group(guid);
+      let group = new Group(guid, owner);
+      // check if it exists
+      if (group.kvs.has(guid)) throw Error(
+        `Group '${guid}' already exists !`
+      );
+      // does not exist, we can create it
       group.type = type || 'small'; // default is SmallMerkleMap
       let some = new AnyMerkleMap(group.type);
       group.merkle = some.empty();
@@ -72,19 +87,38 @@ class Group {
   }  
   
   /**
-   * Reads a Group from the KVS pool
+   * Check id the group Guid already exists in the Pool.
    * @param guid - the unique name of the group
-   * @returns the fully initialized Group from the storage
+   * @returns - `true` if it exists, `false` otherwise
+   * @raises - error if something unexpected happens
    */
-  public static read(guid: string): Group {
+  public static exists(guid: string): boolean {
     try {
       let group = new Group(guid);
-      let map = group.kvs.get(group.guid); 
-      let some = new AnyMerkleMap(group.type);    
-      if (map) {
-        group.merkle = some.deserialize(map.json);
-        group.type = map.type;
-      }
+      return group.kvs.has(group.guid); 
+    }
+    catch (error) {
+      logger.error("Group exists error: ", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reads a Group from the KVS pool
+   * @param guid - the unique name of the group
+   * @returns - the `group` from storage, or `null` if non existent
+   * @raises - error on unexpected errors
+   */
+  public static read(guid: string): Group | null {
+    try {
+      let group = new Group(guid);
+      let stored = group.kvs.get(group.guid) as PersistentGroup; 
+      // if non existent
+      if (!stored) return null;
+      // rebuild from storage
+      group.type = stored.type;
+      group.owner = stored.owner;
+      group.merkle = (new AnyMerkleMap(group.type)).deserialize(stored.json);
       return group;
     }
     catch (error) {
@@ -105,6 +139,7 @@ class Group {
       let serialized = some.serialize();
       (this.kvs as KVSPool).put(this.guid, {
         guid: this.guid,
+        owner: this.owner,
         type: this.type,
         size: some.map?.length.toString(),
         root: some.map?.root.toString(),
@@ -125,8 +160,9 @@ class Group {
    */
   public isMember(commitment: string): boolean {
     try {
-      if (!this.merkle) 
-        throw Error(`No MerkleMap exists for Group: ${this.guid}`);
+      if (!this.merkle) throw Error(
+        `No MerkleMap exists for Group: ${this.guid}`
+      );
       let some = (this.merkle as AnyMerkleMap);    
       let opt = (some.map as SizedMerkleMap).getOption(Field(commitment));
       return (
@@ -144,10 +180,14 @@ class Group {
    * Adds this identity commitment to this Group instance
    * @param commitment 
    */
-  public addMember(commitment: string) {
+  public addMember(commitment: string, signed?: string) {
     try {
-      if (!this.merkle) 
-        throw Error(`No MerkleMap exists for Group: ${this.guid}`);
+      if (!commitment) throw Error(
+        "Missing params: no commitment received"
+      );
+      if (!this.merkle) throw Error(
+        `No MerkleMap exists for Group: ${this.guid}`
+      );
       let some = (this.merkle as AnyMerkleMap);    
       (some.map as SizedMerkleMap).set(
         Field(commitment),
@@ -164,8 +204,11 @@ class Group {
    * Removes a member from this Group instance
    * @param commitment 
    */
-  public removeMember(commitment: string) {
+  public removeMember(commitment: string, signed?: string) {
     try {
+      if (!commitment) throw Error(
+        "Missing params: no commitment received"
+      );
       if (!this.merkle) throw Error(
         `No MerkleMap exists for Group: ${this.guid}`
       );
@@ -179,5 +222,98 @@ class Group {
       logger.error("Group removeMember error: ", error);
       throw error;
     }
+  }
+}
+
+
+/**
+ * A Group that has a specific owner.
+ * Some operations need that the owner signs the operation.
+ */
+class OwnedGroup extends Group {
+
+  /**
+   * Creates a new OWNED empty Group
+   * @param guid - the unique name of this group 
+   * @param type - the merkle map size: small | medium | big
+   * @param owner - the owner's public key (base58)
+   * @returns 
+   */
+  public static create(
+    guid: string, 
+    type: string,
+    owner: string,
+  ): OwnedGroup | null {
+    try {
+      if (!owner) throw Error(
+        "Missing params: this Group requires the owner's public key"
+      );
+      let group = Group.create(guid, type, owner) as OwnedGroup;
+      return group;
+    }  
+    catch (error) {
+      logger.error("OwnedGroup create error: ", error);
+      throw error;
+    }  
+  }  
+
+  /**
+   * Adds this identity commitment to this Group instance
+   * @param commitment - the identity to add 
+   * @param signed - the signed commitment by the owner
+   * @raises - error on unexpected, missing params or signature
+   */
+  addMember(commitment: string, signed: string) {
+    try {
+      this.assertParams(commitment, signed);
+      this.assertSignature(commitment, signed);
+      super.addMember(commitment);
+    }
+    catch (error) {
+      logger.error("OwnedGroup addMember error: ", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Removes a member from this Group instance
+   * @param commitment - the identity to remove
+   * @param signed - the signed commitment by the owner
+   * @raises - error on unexpected, missing params or signature
+   */
+  public removeMember(commitment: string, signed: string) {
+    try {
+      this.assertParams(commitment, signed);
+      this.assertSignature(commitment, signed);
+      super.removeMember(commitment);
+    }
+    catch (error) {
+      logger.error("OwnedGroup removeMember error: ", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validate the signature, or raise error if not valid
+   */
+  private assertSignature(commitment: string, signed: string) {
+    // validate signature
+    let signature = Signature.fromJSON(JSON.parse(signed));
+    const isSigned = signature.verify(
+      PublicKey.fromBase58(this.owner as string), 
+      [Field(commitment)]
+    );
+    if (!isSigned) throw Error(
+      `Invalid signature for '${commitment}'`
+    );
+  }
+
+  /**
+   * Assert the received params are ok, or raise error
+   */
+  private assertParams(commitment: string, signed: string) {
+    if (!commitment) throw Error("Missing params: no commitment received");
+    if (!signed) throw Error("Missing params: no signature received");
+    if (!this.owner) throw Error("Missing params: owner's public key");
   }
 }
