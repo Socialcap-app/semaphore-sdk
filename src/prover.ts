@@ -1,7 +1,8 @@
 import { Field, Signature, Poseidon, PublicKey, VerificationKey } from "o1js";
 import { ZkProgram, SelfProof, Proof, verify } from "o1js";
 import { readPrivateFile, savePrivateFile } from "./private.js";
-import { Identity } from "./identity.js"
+import { Identity } from "./identity.js";
+import { logger } from "./logger.js";
 
 export {
   IdentityProver,
@@ -104,29 +105,41 @@ const IdentityProver = ZkProgram({
  * It does not use the Cache (yet).
 */
 async function compileIdentityProver(): Promise<VerificationKey> {
-  if (!identityProverVK) {
-    const { verificationKey } = await IdentityProver.compile();
-    identityProverVK = verificationKey;
+  try {
+    if (!identityProverVK) {
+      const { verificationKey } = await IdentityProver.compile();
+      identityProverVK = verificationKey;
+    }
+
+    // save for future use
+    savePrivateFile(VK_FILE, {
+      data: identityProverVK.data.toString(),
+      hash: identityProverVK.hash.toString()
+    })
+
+    return identityProverVK;
   }
-
-  // save for future use
-  savePrivateFile(VK_FILE, {
-    data: identityProverVK.data.toString(),
-    hash: identityProverVK.hash.toString()
-  })
-
-  return identityProverVK;
+  catch (error: unknown) {
+    logger.error(`Prover compileIdentityProver error:`, error)
+    throw error;
+  }
 }
 
 /**
  * Restores the verification key from a private file.
  */
 function restoreVerificationKey(): VerificationKey | null {
-  const vk = readPrivateFile(VK_FILE);
-  if (!vk) return null;
-  return {
-    data: vk.data,
-    hash: Field(vk.hash)
+  try {
+    const vk = readPrivateFile(VK_FILE);
+    if (!vk) return null;
+    return {
+      data: vk.data,
+      hash: Field(vk.hash)
+    }
+  }
+  catch (error: unknown) {
+    logger.error(`Prover restoreVerificationKey error:`, error)
+    throw error;
   }
 }
 
@@ -146,57 +159,60 @@ async function verifyIdentity(
   publicKey: string, 
   serializedSignature: string 
 ): Promise<boolean> {
-  if (
-    !commitment || 
-    !serializedProof || 
-    !publicKey || 
-    !serializedSignature
-  ) {
-    console.log(`verifyIdentity error: Invalid params`)
-    return false;
-  }   
-
-  // First get the VerificationKey OR compile. NOTE that we do not need 
-  // to compile if we already have the VerificationKey.
-  let verificationKey = restoreVerificationKey();
-  if (!verificationKey) 
-    verificationKey = await compileIdentityProver();
-
-  // deserialize the received proof
-  let ownershipProof = await ZkProgram.Proof(IdentityProver).fromJSON(
-    JSON.parse(serializedProof)
-  );
-
-  // deserialize the received signature
-  let signed = Signature.fromJSON(JSON.parse(serializedSignature));
-
-  // verify the proof and the commitment come from the same identity
-  try { 
-    ownershipProof.publicInput.assertEquals(Field(commitment)); 
+  try {
+    if (
+      !commitment || 
+      !serializedProof || 
+      !publicKey || 
+      !serializedSignature
+    ) throw Error(`Prover verifyIdentity error: Missing params`);
+    
+    // First get the VerificationKey OR compile. NOTE that we do not need 
+    // to compile if we already have the VerificationKey.
+    let verificationKey = restoreVerificationKey();
+    if (!verificationKey) 
+      verificationKey = await compileIdentityProver();
+    
+    // deserialize the received proof
+    let ownershipProof = await ZkProgram.Proof(IdentityProver).fromJSON(
+      JSON.parse(serializedProof)
+    );
+    
+    // deserialize the received signature
+    let signed = Signature.fromJSON(JSON.parse(serializedSignature));
+    
+    // verify the proof and the commitment come from the same identity
+    try { 
+      ownershipProof.publicInput.assertEquals(Field(commitment)); 
+    }
+    catch (error) {
+      console.log(`verifyIdentity error: Incompatible commitment and ownershipProof`) 
+      return false; 
+    }
+    
+    // check ownership
+    const isOwner = await verify(ownershipProof, verificationKey);
+    if (!isOwner) {
+      console.log(`Prover verifyIdentity failed: Invalid ownershipProof`) 
+      return false;
+    }  
+    
+    // check signature
+    const isSigned = signed.verify(
+      PublicKey.fromBase58(publicKey), 
+      [Field(commitment)]
+    );
+    if (!isSigned.toBoolean()) {
+      logger.info(`Prover verifyIdentity failed: Invalid signature`); 
+      return false;
+    }  
+  
+    return true;
   }
   catch (error) {
-    console.log(`verifyIdentity error: Invalid identity ${commitment} or ownershipProof`) 
-    return false; 
-  }
-
-  // check ownership
-  const isOwner = await verify(ownershipProof, verificationKey);
-  if (!isOwner) {
-    console.log(`verifyIdentity error: Failed verification of ${commitment} ownershipProof`) 
-    return false;
-  }  
-
-  // check signature
-  const isSigned = signed.verify(
-    PublicKey.fromBase58(publicKey), 
-    [Field(commitment)]
-  );
-  if (!isSigned.toBoolean()) {
-    console.log(`verifyIdentity error: Failed verification of ${commitment} signature`) 
-    return false;
-  }  
-
-  return true;
+    logger.error(`Prover verifyIdentity error:`, error);
+    throw error;
+  } 
 }
 
 /**
@@ -209,12 +225,11 @@ async function proveIdentityOwnership(
   identity: Identity,
   pin: string
 ): Promise<string | null> {
-  if (!identity || !pin) {
-    console.log(`proveIdentityOwnership error: Invalid params`)
-    return null;
-  }   
-
   try {
+    if (!identity || !pin) throw Error(
+      `Prover proveIdentityOwnership error: Missing params`
+    );
+
     // we NEED it to be compiled
     let verificationKey = await compileIdentityProver();
     
@@ -223,7 +238,7 @@ async function proveIdentityOwnership(
       Field(identity.commitment), 
       PublicKey.fromBase58(identity.pk),
       Field(pin),
-      identity.sign([Field(identity.commitment)])!
+      identity.sign([Field(identity.commitment)])
     );
     console.log('ownershipProof: ', 
       JSON.stringify(ownershipProof.proof.publicInput, null, 2),
@@ -238,7 +253,7 @@ async function proveIdentityOwnership(
     return JSON.stringify(ownershipProof.proof.toJSON());
   }
   catch (error) {
-    console.log(`proveIdentityOwnership error: `, error);
-    return null;
+    logger.error(`Prover proveIdentityOwnership error:`, error);
+    throw error;
   }
 }

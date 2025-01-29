@@ -13,80 +13,109 @@ import { Field } from "o1js";
 import { SizedMerkleMap, AnyMerkleMap } from "./merkles.js";
 import { type KVSPool, type KVSPoolType, openPool } from "./kvs-pool.js";
 import { cleanLabel } from "./private.js";
+import { POOL } from "./config.js";
+import { logger } from "./logger.js";
 
 export { 
   Group 
+};
+
+type PersistentGroup = {
+  guid: string,
+  type: string,
+  size: string,
+  root: string,
+  json: string,
+  updatedUTC: string
 };
 
 class Group {
   guid = '';
   type = '';
   merkle: AnyMerkleMap | null;
-  kvs: KVSPool | null;
+
+  // this is the pool where we will store the groups
+  // we MUST defined the POOL type with initSdk
+  kvs: KVSPool;
 
   constructor(guid: string) {
-    if (!guid) 
-      throw Error("A Group requires a Uuid");
+    if (!guid) throw Error(
+      "Missing params: the Group requires a guid"
+    );
     this.guid = cleanLabel(guid); 
     this.type = '';
     this.merkle = null;
-    this.kvs = null;
+    this.kvs = openPool(POOL.TYPE as KVSPoolType);
   }
 
   /**
    * Creates a new empty Group
    * @param guid - the unique name of this group 
    * @param type? - the merkle map size: small | medium | big
-   * @param pool? - the pool wher we store this group: mem | lmdb
    * @returns 
    */
   public static create(
     guid: string, 
-    type?: string, 
-    pool?: KVSPoolType
-  ): Group {
-    let group = new Group(guid);
-    group.type = type || 'small'; // default is SmallMerkleMap
-    let some = new AnyMerkleMap(group.type);
-    group.merkle = some.empty();
-    group.kvs = openPool(pool || 'mem'); // default is Mem pool
-    return group;
+    type?: string
+  ): Group | null {
+    try {
+      let group = new Group(guid);
+      group.type = type || 'small'; // default is SmallMerkleMap
+      let some = new AnyMerkleMap(group.type);
+      group.merkle = some.empty();
+      return group;
+    }  
+    catch (error) {
+      logger.error("Group create error: ", error);
+      throw error;
+    }  
   }  
   
   /**
    * Reads a Group from the KVS pool
    * @param guid - the unique name of the group
-   * @param pool - the KVS pool where it is stored: mem | lmdb
-   * @returns the fully initialed Group from the storage
+   * @returns the fully initialized Group from the storage
    */
-  public static read(guid: string, pool?: KVSPoolType): Group {
-    let group = new Group(guid);
-    group.kvs = openPool(pool || 'mem');
-    let map = group.kvs.get(group.guid); 
-    let some = new AnyMerkleMap(group.type);    
-    if (map) {
-      group.merkle = some.deserialize(map.json);
-      group.type = map.type;
+  public static read(guid: string): Group {
+    try {
+      let group = new Group(guid);
+      let map = group.kvs.get(group.guid); 
+      let some = new AnyMerkleMap(group.type);    
+      if (map) {
+        group.merkle = some.deserialize(map.json);
+        group.type = map.type;
+      }
+      return group;
     }
-    return group;
+    catch (error) {
+      logger.error("Group read error: ", error);
+      throw error;
+    }
   }
 
   /**
    * Saves this Group instance to the associated pool.
    */
   public save() {
-    if (!this.kvs)
-      throw Error(`No KV storage exists for Group: ${this.guid}`);
-    let some = (this.merkle as AnyMerkleMap);    
-    let serialized = some.serialize();
-    (this.kvs as KVSPool).put(this.guid, {
-      guid: this.guid,
-      type: this.type,
-      size: some.map?.length.toString(),
-      root: some.map?.root.toString(),
-      json: serialized,
-      updatedUTC: (new Date()).toISOString()
-    })
+    try {
+      if (!this.kvs) throw Error(
+        `No KV storage exists for Group: ${this.guid}`
+      );
+      let some = (this.merkle as AnyMerkleMap);    
+      let serialized = some.serialize();
+      (this.kvs as KVSPool).put(this.guid, {
+        guid: this.guid,
+        type: this.type,
+        size: some.map?.length.toString(),
+        root: some.map?.root.toString(),
+        json: serialized,
+        updatedUTC: (new Date()).toISOString()
+      } as PersistentGroup)
+    }
+    catch (error) {
+      logger.error("Group save error: ", error);
+      throw error;
+    }
   }
 
   /**
@@ -95,14 +124,20 @@ class Group {
    * @returns True or False
    */
   public isMember(commitment: string): boolean {
-    if (!this.merkle) 
-      throw Error(`No MerkleMap exists for Group: ${this.guid}`);
-    let some = (this.merkle as AnyMerkleMap);    
-    let opt = (some.map as SizedMerkleMap).getOption(Field(commitment));
-    return (
-      opt.isSome.toBoolean() && 
-      opt.value.equals(Field(1)).toBoolean()
-    )
+    try {
+      if (!this.merkle) 
+        throw Error(`No MerkleMap exists for Group: ${this.guid}`);
+      let some = (this.merkle as AnyMerkleMap);    
+      let opt = (some.map as SizedMerkleMap).getOption(Field(commitment));
+      return (
+        opt.isSome.toBoolean() && 
+        opt.value.equals(Field(1)).toBoolean()
+      )
+    }
+    catch (error) {
+      logger.error("Group isMember error: ", error);
+      throw error;
+    }
   }
 
   /**
@@ -110,13 +145,19 @@ class Group {
    * @param commitment 
    */
   public addMember(commitment: string) {
-    if (!this.merkle) 
-      throw Error(`No MerkleMap exists for Group: ${this.guid}`);
-    let some = (this.merkle as AnyMerkleMap);    
-    (some.map as SizedMerkleMap).set(
-      Field(commitment),
-      Field(1) //flag it as existent
-    );
+    try {
+      if (!this.merkle) 
+        throw Error(`No MerkleMap exists for Group: ${this.guid}`);
+      let some = (this.merkle as AnyMerkleMap);    
+      (some.map as SizedMerkleMap).set(
+        Field(commitment),
+        Field(1) //flag it as existent
+      );
+    }
+    catch (error) {
+      logger.error("Group addMember error: ", error);
+      throw error;
+    }
   }
 
   /**
@@ -124,12 +165,19 @@ class Group {
    * @param commitment 
    */
   public removeMember(commitment: string) {
-    if (!this.merkle) 
-      throw Error(`No MerkleMap exists for Group: ${this.guid}`);
-    let some = (this.merkle as AnyMerkleMap);    
-    (some.map as SizedMerkleMap).set(
-      Field(commitment),
-      Field(0) // we do not remove, we flag it as 0
-    );
+    try {
+      if (!this.merkle) throw Error(
+        `No MerkleMap exists for Group: ${this.guid}`
+      );
+      let some = (this.merkle as AnyMerkleMap);    
+      (some.map as SizedMerkleMap).set(
+        Field(commitment),
+        Field(0) // we do not remove, we flag it as 0
+      );
+    }
+    catch (error) {
+      logger.error("Group removeMember error: ", error);
+      throw error;
+    }
   }
 }

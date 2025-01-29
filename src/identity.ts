@@ -9,6 +9,7 @@
  */
 import { PrivateKey, Poseidon, Field, Signature } from "o1js";
 import { readPrivateFile, savePrivateFile, setPrivateFolder, cleanLabel } from "./private.js";
+import { logger } from "./logger.js";
 
 export { 
   Identity 
@@ -57,13 +58,13 @@ class Identity {
    * @param label a name or label for this identity, assigned by user
    * @param pin a six digits pin number, assigned by the user
   */ 
-  static create(label: string, pin: string): Identity | null {
+  static create(label: string, pin: string): Identity {
     try {
       return new Identity(label, pin.padStart(6, '0'));
     }
     catch (error: unknown) {
-      console.log(`Create identity error=`, error)
-      return null;
+      logger.error(`Identity create error:`, error)
+      throw error;
     }
   }
 
@@ -72,7 +73,13 @@ class Identity {
    * @param path 
    */
   static privateFolder(path: string) {
-    setPrivateFolder(path);
+    try {
+      setPrivateFolder(path);
+    }
+    catch (error: unknown) {
+      logger.error(`Identity privateFolder error:`, error)
+      throw error;
+    }
   }
 
   /**
@@ -81,15 +88,27 @@ class Identity {
    * @returns the data obj
    */
   static read(name: string): Identity {
-    let obj = readPrivateFile(cleanLabel(name));
-    return Object.assign(new Identity(obj.label, obj.pin), obj);
+    try {
+      let obj = readPrivateFile(cleanLabel(name));
+      return Object.assign(new Identity(obj.label, obj.pin), obj);
+    }
+    catch (error: unknown) {
+      logger.error(`Identity read error:`, error)
+      throw error;
+    }
   }
   
-  public save() {
-    savePrivateFile(this.label, this);
+  public save(): void {
+    try {
+      savePrivateFile(this.label, this);
+    }
+    catch (error: unknown) {
+      logger.error(`Identity save error:`, error)
+      throw error;
+    }
   }
 
-  public sign(fields: Field[]): Signature | null {
+  public sign(fields: Field[]): Signature {
     try {
       let signature = Signature.create(
         PrivateKey.fromBase58(this.sk), 
@@ -98,9 +117,8 @@ class Identity {
       return signature;
     }
     catch (error) {
-      console.log(`Identity sign error=`, error)
-      return null;
+      console.log(`Identity sign error:`, error);
+      throw error;
     }
   }
 }
-
