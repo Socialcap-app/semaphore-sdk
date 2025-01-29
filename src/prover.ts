@@ -186,14 +186,14 @@ async function verifyIdentity(
       ownershipProof.publicInput.assertEquals(Field(commitment)); 
     }
     catch (error) {
-      console.log(`verifyIdentity error: Incompatible commitment and ownershipProof`) 
+      logger.info(`verifyIdentity error: Incompatible commitment and ownershipProof`) 
       return false; 
     }
     
     // check ownership
     const isOwner = await verify(ownershipProof, verificationKey);
     if (!isOwner) {
-      console.log(`Prover verifyIdentity failed: Invalid ownershipProof`) 
+      logger.info(`Prover verifyIdentity failed: Invalid ownershipProof`) 
       return false;
     }  
     
@@ -240,15 +240,17 @@ async function proveIdentityOwnership(
       Field(pin),
       identity.sign([Field(identity.commitment)])
     );
-    console.log('ownershipProof: ', 
-      JSON.stringify(ownershipProof.proof.publicInput, null, 2),
-      JSON.stringify(ownershipProof.proof.publicOutput, null, 2)
+    logger.debug('Prover proveIdentityOwnership ownershipProof'
+      +'\npublicInput: '
+      +JSON.stringify(ownershipProof.proof.publicInput, null, 2)
+      +'\npublicOutput: '
+      +JSON.stringify(ownershipProof.proof.publicOutput, null, 2)
     );
   
     // test the proof: this will be also be done on the /services side by
     // the retrieveAssignments handler
     const ok = await verify(ownershipProof.proof.toJSON(), verificationKey);
-    console.log('ownershipProof ok? ', ok);  
+    logger.debug(`Prover proveIdentityOwnership ownershipProof ok: ${ok}`);  
   
     return JSON.stringify(ownershipProof.proof.toJSON());
   }

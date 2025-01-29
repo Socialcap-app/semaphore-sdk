@@ -1,6 +1,7 @@
 /**
- * A very simple logger including local time, level, message and object
+ * A very simple logger including local time, level, message and object.
  * Can be easily customized to support more advanced loggers.
+ * See: https://github.com/mazito/logger
  * 
  * Use:
  * ~~~
