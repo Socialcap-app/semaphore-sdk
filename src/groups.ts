@@ -70,14 +70,7 @@ class Group {
   ): Group | null {
     try {
       let group = new Group(guid, owner);
-      // check if it exists
-      if (group.kvs.has(guid)) throw Error(
-        `Group '${guid}' already exists !`
-      );
-      // does not exist, we can create it
-      group.type = type || 'small'; // default is SmallMerkleMap
-      let some = new AnyMerkleMap(group.type);
-      group.merkle = some.empty();
+      group.init(guid, type, owner);
       return group;
     }  
     catch (error) {
@@ -85,7 +78,7 @@ class Group {
       throw error;
     }  
   }  
-  
+
   /**
    * Check id the group Guid already exists in the Pool.
    * @param guid - the unique name of the group
@@ -126,6 +119,30 @@ class Group {
       throw error;
     }
   }
+
+  /**
+   * Initializes a Group with its MerkleMap, etc...
+   */
+  public init(
+    guid: string, 
+    type: string,
+    owner?: string,
+  ): void {
+    try {
+      // check if it exists
+      if (this.kvs.has(guid)) throw Error(
+        `Group '${guid}' already exists !`
+      );
+      // does not exist, we can create it
+      this.type = type || 'small'; // default is SmallMerkleMap
+      let some = new AnyMerkleMap(this.type);
+      this.merkle = some.empty();
+    }  
+    catch (error) {
+      logger.error("Group init error: ", error);
+      throw error;
+    }  
+  }  
 
   /**
    * Saves this Group instance to the associated pool.
@@ -232,6 +249,10 @@ class Group {
  */
 class OwnedGroup extends Group {
 
+  constructor(guid: string, owner: string) {
+    super(guid, owner);
+  }
+
   /**
    * Creates a new OWNED empty Group
    * @param guid - the unique name of this group 
@@ -248,7 +269,8 @@ class OwnedGroup extends Group {
       if (!owner) throw Error(
         "Missing params: this Group requires the owner's public key"
       );
-      let group = Group.create(guid, type, owner) as OwnedGroup;
+      let group = new OwnedGroup(guid, owner);
+      group.init(guid, type, owner);
       return group;
     }  
     catch (error) {
@@ -303,7 +325,8 @@ class OwnedGroup extends Group {
       PublicKey.fromBase58(this.owner as string), 
       [Field(commitment)]
     );
-    if (!isSigned) throw Error(
+    //console.log("assertSignature", isSigned.toBoolean());
+    if (!isSigned.toBoolean()) throw Error(
       `Invalid signature for '${commitment}'`
     );
   }
