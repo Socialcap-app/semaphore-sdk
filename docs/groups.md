@@ -287,7 +287,7 @@ let ownerSk = 'EKFXk...42X';
 // sign the commitment and serialize the signature
 let signature = Signature.create(
   PrivateKey.fromBase58(ownerSk), 
-  Field[ identityCommitment ]
+  [Field(identityCommitment)]
 );
 let signed = JSON.stringify(signature.toJSON());
 
@@ -329,7 +329,7 @@ let ownerSk = 'EKFXk...42X';
 // sign the commitment and serialize the signature
 let signature = Signature.create(
   PrivateKey.fromBase58(ownerSk), 
-  Field[ identityCommitment ]
+  [Field(identityCommitment)]
 );
 let signed = JSON.stringify(signature.toJSON());
 
