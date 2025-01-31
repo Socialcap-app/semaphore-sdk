@@ -25,7 +25,7 @@ Semaphore: Zero-Knowledge Signaling on Ethereum**
 ### Classes
 
 - [Identity](./docs/identity.md)
-- [Group](./docs/group.md)
+- [Groups](./docs/groups.md)
 - [Signal](./docs/signal.md)
 
 ### Proofs

@@ -43,7 +43,7 @@ These are the methods for the base Group class, where we can create, read and
 save groups. Also can add and remove members to a group, and check if a certain
 identity is a member of the group.
 
-### [Group.create](../src/group.ts#L66)
+### [Group.create](../src/groups.ts#L66)
 
 Creates a new empty instance of Group of the given type, where:
 
@@ -68,7 +68,7 @@ let guid = `communities.${UID.uuid4()}.electors`;
 let group = Group.create(guid, 'medium');
 ~~~
 
-### [Group.read](../src/group.ts#L122)
+### [Group.read](../src/groups.ts#L122)
 
 Reads an existent group from the storage pool.
 
@@ -97,7 +97,7 @@ let guid = `communities.8e141386c85b4f29b12bbd5edd0c0ae9.electors`;
 let group = Group.read(guid, 'lmdb');
 ~~~
 
-### [save](../src/group.ts#L133)
+### [save](../src/groups.ts#L133)
 
 Saves the instance to the associated pool.
 
@@ -121,7 +121,7 @@ let group = Group.create(guid, 'medium');
 group.save();
 ~~~
 
-### [isMember](../src/group.ts#L161)
+### [isMember](../src/groups.ts#L161)
 
 Check if it is a member of the group.
 
@@ -148,7 +148,7 @@ let identityCommitment = '22890866...7224';
 let exists = group.isMember(identityCommitment);
 ~~~
 
-### [addMember](../src/group.ts#L183)
+### [addMember](../src/groups.ts#L183)
 
 Adds a new identity commitment to the group, and assigns `value = Field(1)` to 
 the given  identity commitment leaf.
@@ -176,7 +176,7 @@ let identityCommitment = '22890866...7224';
 group.addMember(identityCommitment);
 ~~~
 
-### [removeMember](../src/group.ts#L207)
+### [removeMember](../src/groups.ts#L207)
 
 Removes a member from the group, by assigning _value = Field(0)_ to the given 
 identity commitment leaf.
@@ -216,7 +216,7 @@ add or remove members. NOTE that once we establish and owner for the group, we
 
 Here we only describe the overloaded methods.
 
-### [Group.create](../src/group.ts#L242)
+### [Group.create](../src/groups.ts#L242)
 
 Creates a new empty instance of OwnedGroup of the given type. We need to provide
  the owner account that will manage this group.
@@ -247,7 +247,7 @@ let guid = `communities.${UID.uuid4()}.electors`;
 let group = Group.create(guid, 'medium', owner);
 ~~~
 
-### [addMember](../src/group.ts#L266)
+### [addMember](../src/groups.ts#L266)
 
 Adds a new identity commitment to the group, and assigns `value = Field(1)` to 
 the given  identity commitment leaf.
@@ -290,7 +290,7 @@ let signed = JSON.stringify(signature.toJSON());
 group.addMember(identityCommitment, signed);
 ~~~
 
-### [removeMember](../src/group.ts#L284)
+### [removeMember](../src/groups.ts#L284)
 
 Removes a member from the group, by assigning `value = Field(0)` to the 
  corresponding identity commitment leaf.
