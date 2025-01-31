@@ -59,6 +59,11 @@ static Group.create(
 - `guid` the unique string name for the group.
 - `type` the max size of the group MerkleMap: 'small' | 'medium' | 'big'.
 
+And the max size for each type is:
+- `small` max 4096 nodes
+- `medium` max 65536 nodes
+- `big` max 16777216 nodes
+
 **Example**
 ~~~typescript
 import { UID, Group } from '@socialcap/semaphore-sdk';
@@ -83,7 +88,7 @@ static Group.read(
 - `guid` the unique string name for the group
 
 **Returns**
-The stored group, or `null` if it does not exist.
+- The stored group, or `null` if it does not exist.
 
 **Example**
 ~~~typescript
@@ -94,7 +99,7 @@ initSdk({ LMDB_PATH: './kvstore' })
 
 // read it from the Lmdb pool
 let guid = `communities.8e141386c85b4f29b12bbd5edd0c0ae9.electors`;
-let group = Group.read(guid, 'lmdb');
+let group = Group.read(guid);
 ~~~
 
 ### [save](../src/groups.ts#L133)
