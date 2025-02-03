@@ -49,7 +49,7 @@ describe('Create and manage signal', () => {
     expect(signal.encrypted).toBe(true);
   });
 
-  it.only('Roundtrip serialize/deserialize', async () => {
+  it('Roundtrip serialize/deserialize', async () => {
     let topic = UID.uuid4();
     let message = "+1"; // positive vote      
     let signal = Signal.create(
