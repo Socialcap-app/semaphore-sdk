@@ -10,7 +10,7 @@
 */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Field, Signature, PublicKey } from "o1js";
-import { SizedMerkleMap, AnyMerkleMap } from "./merkles.js";
+import { SizedMerkleMap, AnyMerkleMap } from "./DEPRECATE-merkles.--ts";
 import { type KVSPool, type KVSPoolType, openPool } from "./kvs-pool.js";
 import { cleanLabel } from "./private.js";
 import { POOL } from "./config.js";
