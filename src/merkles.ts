@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Field } from "o1js";
+import { Field, assert } from "o1js";
 import { Experimental } from "o1js";
 import { bigintFromBase64, bigintToBase64 } from "./utils.js";
+import { logger } from "./logger.js";
 
 let IndexedMerkleMapFactory = Experimental.IndexedMerkleMap;
-const { IndexedMerkleMap } = Experimental;
+// const { IndexedMerkleMap } = Experimental;
 
 export {
   SizedMerkleMap,
@@ -21,29 +22,53 @@ class SizedMerkleMap {
   map: any | null;
   height: number;
 
-  constructor(height: number | MerkleHeight) {
+  constructor(height: number) {
+    assert(height > 0, "MerkleMap height can not be 0")
     this.height = height as number;
-    this.map = null
+    let mapFactory = IndexedMerkleMapFactory(height);
+    this.map = new mapFactory();
   }
 
-  public empty(): SizedMerkleMap {
-    let mapFactory = IndexedMerkleMapFactory(this.height);
-    this.map = new mapFactory();
-    return this;
+  public static create(height: MerkleHeight | number): SizedMerkleMap {
+    try {
+      return new SizedMerkleMap(height as number);
+    }
+    catch (error) {
+      logger.error("SizedMerkleMap create error:", error);
+      throw error;
+    }
+  }
+
+  public static deserialize(json: string): SizedMerkleMap {
+    try {
+      assert(!!json, "Invalid JSON string");
+      return deserializeMap(json);
+    }
+    catch (error) {
+      logger.error("SizedMerkleMap deserialize error:", error);
+      throw error;
+    }
   }
 
   public serialize(): string {
-    let json = serializeMap(this.map);
-    return json;
-  }
-
-  public deserialize(json: string): SizedMerkleMap {
-    this.map = deserializeMap(json, this.height);
-    return this;
+    try {
+      let json = serializeMap(this);
+      return json;
+    }
+    catch (error) {
+      logger.error("SizedMerkleMap serialize error:", error);
+      throw error;
+    }
   }
 
   public getSortedKeys(): string[] {
-    return getSortedKeys(this.map);
+    try {
+      return getSortedKeys(this);
+    }
+    catch (error) {
+      logger.error("SizedMerkleMap getSortedKeys error:", error);
+      throw error;
+    }
   }
 }
 
@@ -54,12 +79,13 @@ class SizedMerkleMap {
  * @param map the MerkleMap to serialize
  * @returns the serialized JSON string
  */
-function serializeMap(map: any): string {
-  const snapshot = map.clone();
+function serializeMap(sizedMap: SizedMerkleMap): string {
+  const snapshot = sizedMap.map.clone();
   //console.log("root map1:", map.root.toJSON());
   //console.log("root map2:", snapshot.root.toJSON());
   const serializedMap = JSON.stringify(
     {
+      height: sizedMap.height,
       root: snapshot.root.toJSON(),
       length: snapshot.length.toJSON(),
       nodes: JSON.stringify(snapshot.data.get().nodes, (_, v) =>
@@ -89,8 +115,9 @@ function serializeMap(map: any): string {
  * https://github.com/zkcloudworker/zkcloudworker-tests/blob/main/tests/indexed.map.test.ts
  * @param serialized 
  */
-function deserializeMap(serialized: string, height: number): SizedMerkleMap {
+function deserializeMap(serialized: string): SizedMerkleMap {
   const json = JSON.parse(serialized);
+  const height = json.height;
   const nodes = JSON.parse(json.nodes, (_, v) => {
     // Check if the value is a string that represents a BigInt
     if (typeof v === "string" && v[0] === "n") {
@@ -108,10 +135,10 @@ function deserializeMap(serialized: string, height: number): SizedMerkleMap {
     };
   });
   //console.log("data:", data);
-  const restoredMap = (new SizedMerkleMap(height)).empty().map; 
-  restoredMap.root = Field.fromJSON(json.root);
-  restoredMap.length = Field.fromJSON(json.length);
-  restoredMap.data.updateAsProver(() => {
+  let restoredMap = new SizedMerkleMap(height);
+  restoredMap.map.root = Field.fromJSON(json.root);
+  restoredMap.map.length = Field.fromJSON(json.length);
+  restoredMap.map.data.updateAsProver(() => {
     return {
       nodes: nodes.map((row: any) => [...row]),
       sortedLeaves: [...sortedLeaves],
@@ -127,9 +154,9 @@ function deserializeMap(serialized: string, height: number): SizedMerkleMap {
  * @param map 
  * @returns the array of sorted keys in the map
  */
-function getSortedKeys(map: any): string[] {
+function getSortedKeys(sizedMap: SizedMerkleMap): string[] {
   // traverse the sorted nodes
-  const sortedLeaves = map.data.get().sortedLeaves; 
+  const sortedLeaves = sizedMap.map.data.get().sortedLeaves; 
   const sortedKeys = sortedLeaves?.map((t: any) => {
     // { key, value, nextKey, index }
     // console.log(j, t.index, t.key, t.value)
