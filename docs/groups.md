@@ -77,7 +77,7 @@ import { UID, Group, GroupHeight } from '@socialcap/semaphore-sdk';
 let guid = `communities.${UID.uuid4()}.electors`;
 
 // create a new group
-let group = Group.create(guid, GroupHeight.medium');
+let group = Group.create(guid, GroupHeight.medium);
 ~~~
 
 ### [Group.read](../src/groups.ts#L122)
