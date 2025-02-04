@@ -24,7 +24,7 @@ We provide two pool types:
 
 - **LMDB pool**: this is a persistent key-value store based on LMDB. Can only 
  be used in Node. The PATH where we will store the key-values must be set 
- using the initSdk() method.
+  using the initSdk() method.
 
 There is one entry in the KV pool per Group, where **key** = `${guid}`
  and **value** holds the full Group instance.
@@ -51,26 +51,33 @@ Creates a new empty instance of Group of the given type, where:
 ~~~
 static Group.create(
   guid: string, 
-  type: string
+  height: number
 ): Group
 ~~~
 
 **Params**
-- `guid` the unique string name for the group.
-- `type` the max size of the group MerkleMap: 'small' | 'medium' | 'big'.
 
-And the max size for each type is:
-- `small` max 4096 nodes
-- `medium` max 65536 nodes
-- `big` max 16777216 nodes
+- `guid` the unique string name for the group.
+- `height` the height of the group's MerkleMap (GroupHeight), which defines 
+  the maximum number of nodes the group can contain.
+
+where:
+~~~
+enum GroupHeight {
+  small = 12,   // max 4096 nodes
+  medium = 16,  // max 65536 nodes
+  big = 24,     // max 16777216 nodes 
+}
+~~~
 
 **Example**
+
 ~~~typescript
-import { UID, Group } from '@socialcap/semaphore-sdk';
+import { UID, Group, GroupHeight } from '@socialcap/semaphore-sdk';
 let guid = `communities.${UID.uuid4()}.electors`;
 
 // create a new group
-let group = Group.create(guid, 'medium');
+let group = Group.create(guid, GroupHeight.medium');
 ~~~
 
 ### [Group.read](../src/groups.ts#L122)
@@ -107,11 +114,13 @@ let group = Group.read(guid);
 Saves the instance to the associated pool.
 
 **Definition**
+
 ~~~
 save(): void
 ~~~
 
 **Example**
+
 ~~~typescript
 import { UID, Group } from '@socialcap/semaphore-sdk';
 
@@ -131,6 +140,7 @@ group.save();
 Check if it is a member of the group.
 
 **Definition**
+
 ~~~
 isMember(
   commitment: string
@@ -138,9 +148,11 @@ isMember(
 ~~~
 
 **Params**
+
 - `commitment` the identity commitment to check
 
 **Example**
+
 ~~~typescript
 import { UID, Group, Identity } from '@socialcap/semaphore-sdk';
 
@@ -159,6 +171,7 @@ Adds a new identity commitment to the group, and assigns `value = Field(1)` to
 the given  identity commitment leaf.
 
 **Definition**
+
 ~~~
 addMember(
   commitment: string
@@ -166,6 +179,7 @@ addMember(
 ~~~
 
 **Params**
+
 - `commitment` the identity commitment of the member to add
 
 **Example**
@@ -230,14 +244,15 @@ Creates a new empty instance of OwnedGroup of the given type. We need to provide
 ~~~
 static Group.create(
   guid: string, 
-  type: string,
+  height: string,
   owner: string
 ): Group
 ~~~
 
 **Params**
 - `guid` the unique string name for the group.
-- `type` the max size of the group MerkleMap: 'small' | 'medium' | 'big'.
+- `height` the height of the group's MerkleMap (GroupHeight), which defines 
+  the maximum number of nodes the group can contain.
 - `owner` public key (base58) of the owner of this group
 
 **Example**
@@ -249,7 +264,7 @@ let pk = 'B62qrUhhbXFxiuwAAkv9SdpSCcwVJfZB1PesH3K4aKpCxCtrAC6vUWJ';
 
 // create a new group
 let guid = `communities.${UID.uuid4()}.electors`;
-let group = Group.create(guid, 'medium', owner);
+let group = Group.create(guid, GroupHeight.medium, owner);
 ~~~
 
 ### [addMember](../src/groups.ts#L266)
