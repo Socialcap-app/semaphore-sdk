@@ -22,7 +22,7 @@ export {
   GroupHeight
 };
 
-type GroupHeight = MerkleHeight;
+const GroupHeight = MerkleHeight;
 
 type PersistentGroup = {
   guid: string,

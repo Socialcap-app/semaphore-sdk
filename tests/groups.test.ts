@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Field, PrivateKey, Signature } from "o1js";
 import { Identity } from "../src/identity";
-import { Group, OwnedGroup } from "../src/groups";
+import { Group, OwnedGroup, GroupHeight } from "../src/groups";
 import { randomInt } from "crypto";
 
 describe('Create and manage groups', () => {
@@ -46,24 +46,24 @@ describe('Create and manage groups', () => {
   });
 
   it('Create small, medium and big Groups', async () => {
-    let gsmall = Group.create('gsmall', 'small');
+    let gsmall = Group.create('gsmall', GroupHeight.small);
     expect(gsmall).not.toBe(null);
     let len = gsmall?.merkle?.map?.length.toBigInt();
     expect(len).toBe(1n);
 
-    let gmedium = Group.create('gmedium', 'medium');
+    let gmedium = Group.create('gmedium', GroupHeight.medium);
     expect(gmedium).not.toBe(null);
     let len2 = gmedium?.merkle?.map?.length.toBigInt();
     expect(len2).toBe(1n);
 
-    let gbig = Group.create('gbig', 'big');
+    let gbig = Group.create('gbig', GroupHeight.big);
     expect(gbig).not.toBe(null);
     let len3 = gbig?.merkle?.map?.length.toBigInt();
     expect(len3).toBe(1n);
   });
 
   it('Create a big group and add N members', async () => {
-    group = Group.create('group.01', 'big') as Group;
+    group = Group.create('group.01', GroupHeight.big) as Group;
     expect(group).not.toBe(null);
     let len = group?.merkle?.map?.length.toBigInt();
     expect(len).toBe(1n);
@@ -105,7 +105,7 @@ describe('Create and manage groups', () => {
   });
 
   it('Create a big Owned group and add N members', async () => {
-    ownedGroup = OwnedGroup.create('group.02', 'big', owner.pk) as OwnedGroup;
+    ownedGroup = OwnedGroup.create('group.02', GroupHeight.big, owner.pk) as OwnedGroup;
     expect(ownedGroup).not.toBe(null);
     let len = ownedGroup?.merkle?.map?.length.toBigInt();
     expect(len).toBe(1n);
