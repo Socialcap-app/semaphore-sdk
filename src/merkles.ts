@@ -61,6 +61,14 @@ class SizedMerkleMap {
     }
   }
 
+  public root(): Field {
+    return this.map.root;
+  }
+
+  public length(): Field {
+    return this.map.length;
+  }
+
   public getSortedKeys(): string[] {
     try {
       return getSortedKeys(this);

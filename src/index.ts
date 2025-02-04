@@ -6,4 +6,4 @@ export { CipheredText } from "./encryption.js";
 export { UID } from "./uid.js";
 export { LMDB } from "./config.js";
 export { logger } from "./logger.js";
-export { SizedMerkleMap, AnyMerkleMap } from "./DEPRECATE-merkles.--ts";
+export { SizedMerkleMap, MerkleHeight } from "./merkles.js";
