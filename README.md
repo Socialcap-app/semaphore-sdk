@@ -1,6 +1,9 @@
 # Semaphore SDK
 
-An `o1js` implementation of the **Semaphore protocol**: a zero-knowledge protocol that allows you to cast a signal and prove you are a member of  certain group without revealing your identity.
+A **loose** [MINA Protocol's o1js](https://docs.minaprotocol.com/zkapps/o1js) 
+implementation of the **Semaphore protocol**: a zero-knowledge protocol that 
+enables users to broadcast a signal and prove their membership in a specific 
+group without revealing their identity.
 
 See: https://semaphore.pse.dev/
 
